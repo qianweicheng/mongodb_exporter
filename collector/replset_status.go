@@ -267,7 +267,7 @@ func GetReplSetStatus(session *mgo.Session) *ReplSetStatus {
 	result := &ReplSetStatus{}
 	err := session.DB("admin").Run(bson.D{{"replSetGetStatus", 1}}, result)
 	if err != nil {
-		glog.Error("Failed to get replSet status.")
+		glog.Error("Failed to get replSet status:" + err.Error())
 		return nil
 	}
 	return result

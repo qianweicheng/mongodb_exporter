@@ -87,7 +87,10 @@ func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
 		exporter.collectServerStatus(mongoSess, ch)
 		if exporter.Opts.CollectReplSet {
 			glog.Info("Collecting ReplSet Status")
-			exporter.collectReplSetStatus(mongoSess, ch)
+			shardsStatus := exporter.collectShardStatus(mongoSess, ch)
+			if shardsStatus == nil {
+				exporter.collectReplSetStatus(mongoSess, ch)
+			}
 		}
 		if exporter.Opts.CollectOplog {
 			glog.Info("Collecting Oplog Status")
@@ -143,6 +146,17 @@ func (exporter *MongodbCollector) collectReplSetStatus(session *mgo.Session, ch 
 	}
 
 	return replSetStatus
+}
+
+func (exporter *MongodbCollector) collectShardStatus(session *mgo.Session, ch chan<- prometheus.Metric) *ShardsStatus {
+	shardsStatus := GetShardStatus(session)
+
+	if shardsStatus != nil {
+		glog.Info("exporting ShardsStatus Metrics")
+		shardsStatus.Export(ch)
+	}
+
+	return shardsStatus
 }
 
 func (exporter *MongodbCollector) collectOplogStatus(session *mgo.Session, ch chan<- prometheus.Metric) *OplogStatus {
