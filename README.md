@@ -14,8 +14,8 @@ Download a [release](https://github.com/dcu/mongodb_exporter/releases)
 
 Requires [glide](https://github.com/Masterminds/glide) for dependency management
 
-    git clone git@github.com:dcu/mongodb_exporter.git $GOPATH/src/github.com/dcu/mongodb_exporter
-    cd $GOPATH/src/github.com/dcu/mongodb_exporter
+    git clone git@github.com:qianweicheng/mongodb_exporter.git $GOPATH/src/github.com/qianweicheng/mongodb_exporter
+    cd $GOPATH/src/github.com/qianweicheng/mongodb_exporter
     make build
     ./mongodb_exporter -h
 
