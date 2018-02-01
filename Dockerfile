@@ -10,6 +10,6 @@ MAINTAINER David Cuadrado <dacuad@facebook.com>
 EXPOSE     9001
 
 RUN apk add --update ca-certificates
-COPY --from=builder /go/src/github.com/dcu/mongodb_exporter/release/mongodb_exporter-linux-amd64 /usr/local/bin/mongodb_exporter
+COPY --from=builder /go/src/github.com/qianweicheng/mongodb_exporter/release/mongodb_exporter-linux-amd64 /usr/local/bin/mongodb_exporter
 
 ENTRYPOINT [ "mongodb_exporter" ]
