@@ -1,10 +1,12 @@
 package collector
 
 import (
-	"github.com/dcu/mongodb_exporter/shared"
+	"github.com/qianweicheng/mongodb_exporter/shared"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/mgo.v2"
+	"fmt"
+	"strings"
 )
 
 var (
@@ -154,6 +156,28 @@ func (exporter *MongodbCollector) collectShardStatus(session *mgo.Session, ch ch
 	if shardsStatus != nil {
 		glog.Info("exporting ShardsStatus Metrics")
 		shardsStatus.Export(ch)
+
+		for _, member := range shardsStatus.Shards {
+			glog.Info(fmt.Sprintf("Shard Host: %s", member.Host))
+			//Get Shard detail info
+			//"rs1/mongodb-shad-a-0.mongodb-shad.default.svc.cluster.local:27018,
+			// mongodb-shad-a-1.mongodb-shad.default.svc.cluster.local:27018,
+			// mongodb-shad-a-2.mongodb-shad.default.svc.cluster.local:27018"
+			hostStr := member.Host[len(member.Id)+1:]
+			hosts := strings.Split(hostStr, ",")
+			for _, host := range hosts {
+				glog.Info(fmt.Sprintf("Repl Host: %s", host))
+				ops := exporter.Opts.toSessionOps()
+				ops.URI = host
+				mongoSess2 := shared.MongoSession(ops)
+				replSetStatus := GetReplSetStatus(mongoSess2)
+				if replSetStatus != nil {
+					glog.Info("exporting ReplSetStatus Metrics")
+					replSetStatus.Export(ch)
+					break
+				}
+			}
+		}
 	}
 
 	return shardsStatus

@@ -42,8 +42,6 @@ func (shardsStatus *ShardsStatus) Export(ch chan<- prometheus.Metric) {
 		memberState.With(ls).Set(float64(member.State))
 		if member.State != 1 {
 			mFailedShardCount += 1
-		} else {
-			//Get Shard detail info
 		}
 	}
 	glog.Info(fmt.Sprintf("Failed Shard Count: %d", mFailedShardCount))
