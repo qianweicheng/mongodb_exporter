@@ -39,7 +39,7 @@ func (shardsStatus *ShardsStatus) Export(ch chan<- prometheus.Metric) {
 			"id":  member.Id,
 		}
 
-		memberState.With(ls).Set(float64(member.State))
+		myShardState.With(ls).Set(float64(member.State))
 		if member.State != 1 {
 			mFailedShardCount += 1
 		}
@@ -61,6 +61,25 @@ func GetShardStatus(session *mgo.Session) *ShardsStatus {
 	if err != nil {
 		glog.Error("Failed to get replSet status:" + err.Error())
 		return nil
+	}
+	return result
+}
+
+func GetShardStatusForTest(session *mgo.Session) *ShardsStatus {
+	result := &ShardsStatus{
+		Ok:"1",
+		Shards:[]ShardInfo{
+			{
+				Id:"rs1",
+				Host:"rs1/mongodb-shad-a-0.mongodb-shad.default.svc.cluster.local:27018,mongodb-shad-a-1.mongodb-shad.default.svc.cluster.local:27018,mongodb-shad-a-2.mongodb-shad.default.svc.cluster.local:27018",
+				State:1,
+			},
+			{
+				Id:"rs2",
+				Host:"rs2/mongodb-shad-b-0.mongodb-shad.default.svc.cluster.local:27018,mongodb-shad-b-1.mongodb-shad.default.svc.cluster.local:27018,mongodb-shad-b-2.mongodb-shad.default.svc.cluster.local:27018",
+				State:2,
+			},
+		},
 	}
 	return result
 }

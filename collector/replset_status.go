@@ -31,7 +31,7 @@ var (
 		Subsystem: subsystem,
 		Name:      "master_count",
 		Help:      "The number of master, any value except 1 means something wrong",
-	}, []string{})
+	}, []string{"set"})
 
 	term = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: Namespace,
@@ -226,7 +226,7 @@ func (replStatus *ReplSetStatus) Export(ch chan<- prometheus.Metric) {
 	} else {
 		myReplicaLag.WithLabelValues(replStatus.Set).Set(-1.0)
 	}
-	masterCount.WithLabelValues().Set(float64(mCount))
+	masterCount.WithLabelValues(replStatus.Set).Set(float64(mCount))
 	// collect metrics
 	myState.Collect(ch)
 	myReplicaLag.Collect(ch)
@@ -262,6 +262,111 @@ func (replStatus *ReplSetStatus) Describe(ch chan<- *prometheus.Desc) {
 	memberConfigVersion.Describe(ch)
 }
 
+func (replStatus *ReplSetStatus) ExportWithoutReset(ch chan<- prometheus.Metric) {
+	myState.WithLabelValues(replStatus.Set).Set(float64(replStatus.MyState))
+
+	// new in version 3.2
+	if replStatus.Term != nil {
+		term.WithLabelValues(replStatus.Set).Set(float64(*replStatus.Term))
+	}
+	numberOfMembers.WithLabelValues(replStatus.Set).Set(float64(len(replStatus.Members)))
+
+	// new in version 3.2
+	if replStatus.HeartbeatIntervalMillis != nil {
+		heartbeatIntervalMillis.WithLabelValues(replStatus.Set).Set(*replStatus.HeartbeatIntervalMillis)
+	}
+
+	var (
+		primaryOpTime time.Time
+		myOpTime      time.Time
+	)
+	mCount := 0
+	for _, member := range replStatus.Members {
+		ls := prometheus.Labels{
+			"set":  replStatus.Set,
+			"name": member.Name,
+		}
+		if member.State == 1 {
+			primaryOpTime = member.OptimeDate
+		}
+		if member.Self != nil && *member.Self {
+			myOpTime = member.OptimeDate
+		}
+		memberState.With(ls).Set(float64(member.State))
+		if member.State == 1 {
+			mCount += 1
+		}
+
+		// ReplSetStatus.Member.Health is not available on the node you're connected to
+		if member.Health != nil {
+			memberHealth.With(ls).Set(float64(*member.Health))
+		}
+
+		memberUptime.With(ls).Set(member.Uptime)
+
+		memberOptimeDate.With(ls).Set(float64(member.OptimeDate.Unix()))
+
+		// ReplSetGetStatus.Member.ElectionTime is only available on the PRIMARY
+		if member.ElectionDate != nil {
+			memberElectionDate.With(ls).Set(float64((*member.ElectionDate).Unix()))
+		}
+		if member.LastHeartbeat != nil {
+			memberLastHeartbeat.With(ls).Set(float64((*member.LastHeartbeat).Unix()))
+		}
+		if member.LastHeartbeatRecv != nil {
+			memberLastHeartbeatRecv.With(ls).Set(float64((*member.LastHeartbeatRecv).Unix()))
+		}
+		if member.PingMs != nil {
+			memberPingMs.With(ls).Set(*member.PingMs)
+		}
+		if member.ConfigVersion != nil {
+			memberConfigVersion.With(ls).Set(float64(*member.ConfigVersion))
+		}
+	}
+	if !primaryOpTime.IsZero() && !myOpTime.IsZero() {
+		myReplicaLag.WithLabelValues(replStatus.Set).Set(float64(primaryOpTime.Unix() - myOpTime.Unix()))
+	} else {
+		myReplicaLag.WithLabelValues(replStatus.Set).Set(-1.0)
+	}
+	masterCount.WithLabelValues(replStatus.Set).Set(float64(mCount))
+}
+
+func ReplsetReset() {
+	myState.Reset()
+	myReplicaLag.Reset()
+	term.Reset()
+	numberOfMembers.Reset()
+	heartbeatIntervalMillis.Reset()
+	memberState.Reset()
+	memberHealth.Reset()
+	memberUptime.Reset()
+	memberOptimeDate.Reset()
+	memberElectionDate.Reset()
+	memberLastHeartbeat.Reset()
+	memberLastHeartbeatRecv.Reset()
+	memberPingMs.Reset()
+	memberConfigVersion.Reset()
+	masterCount.Reset()
+}
+
+func ReplsetCollect(ch chan<- prometheus.Metric) {
+	myState.Collect(ch)
+	myReplicaLag.Collect(ch)
+	term.Collect(ch)
+	numberOfMembers.Collect(ch)
+	heartbeatIntervalMillis.Collect(ch)
+	memberState.Collect(ch)
+	masterCount.Collect(ch)
+	memberHealth.Collect(ch)
+	memberUptime.Collect(ch)
+	memberOptimeDate.Collect(ch)
+	memberElectionDate.Collect(ch)
+	memberLastHeartbeat.Collect(ch)
+	memberLastHeartbeatRecv.Collect(ch)
+	memberPingMs.Collect(ch)
+	memberConfigVersion.Collect(ch)
+}
+
 // GetReplSetStatus returns the replica status info
 func GetReplSetStatus(session *mgo.Session) *ReplSetStatus {
 	result := &ReplSetStatus{}
@@ -269,6 +374,37 @@ func GetReplSetStatus(session *mgo.Session) *ReplSetStatus {
 	if err != nil {
 		glog.Error("Failed to get replSet status:" + err.Error())
 		return nil
+	}
+	return result
+}
+
+func GetReplSetStatusForTest(session *mgo.Session) *ReplSetStatus {
+	s := true
+	h := int32(1)
+	result := &ReplSetStatus{
+		Set:"rs1",
+		Date: time.Now(),
+		MyState:1,
+		Members:[]Member{
+			{
+				Name:"mongodb-shad-a-0.mongodb-shad.default.svc.cluster.local:27018",
+				Self:&s,
+				Health:&h,
+				State:1,
+				StateStr:"PRIMARY",
+				Uptime:float64(1),
+				OptimeDate:time.Now(),
+			},
+			{
+				Name:"mongodb-shad-a-1.mongodb-shad.default.svc.cluster.local:27018",
+				Self:&s,
+				Health:&h,
+				State:2,
+				StateStr:"SECONDARY",
+				Uptime:float64(1),
+				OptimeDate:time.Now(),
+			},
+		},
 	}
 	return result
 }

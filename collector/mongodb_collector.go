@@ -156,7 +156,7 @@ func (exporter *MongodbCollector) collectShardStatus(session *mgo.Session, ch ch
 	if shardsStatus != nil {
 		glog.Info("exporting ShardsStatus Metrics")
 		shardsStatus.Export(ch)
-
+		ReplsetReset()
 		for _, member := range shardsStatus.Shards {
 			glog.Info(fmt.Sprintf("Shard Host: %s", member.Host))
 			//Get Shard detail info
@@ -165,6 +165,7 @@ func (exporter *MongodbCollector) collectShardStatus(session *mgo.Session, ch ch
 			// mongodb-shad-a-2.mongodb-shad.default.svc.cluster.local:27018"
 			hostStr := member.Host[len(member.Id)+1:]
 			hosts := strings.Split(hostStr, ",")
+
 			for _, host := range hosts {
 				glog.Info(fmt.Sprintf("Repl Host: %s", host))
 				ops := exporter.Opts.toSessionOps()
@@ -173,11 +174,12 @@ func (exporter *MongodbCollector) collectShardStatus(session *mgo.Session, ch ch
 				replSetStatus := GetReplSetStatus(mongoSess2)
 				if replSetStatus != nil {
 					glog.Info("exporting ReplSetStatus Metrics")
-					replSetStatus.Export(ch)
+					replSetStatus.ExportWithoutReset(ch)
 					break
 				}
 			}
 		}
+		ReplsetCollect(ch)
 	}
 
 	return shardsStatus
