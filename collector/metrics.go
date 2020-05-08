@@ -360,11 +360,11 @@ type PreloadStats struct {
 
 // Export exposes the preload stats.
 func (preloadStats *PreloadStats) Export(ch chan<- prometheus.Metric) {
-	metricsReplPreloadDocsNumTotal.Set(preloadStats.Docs.Num)
-	metricsReplPreloadDocsTotalMilliseconds.Set(preloadStats.Docs.TotalMillis)
+	// metricsReplPreloadDocsNumTotal.Set(preloadStats.Docs.Num)
+	// metricsReplPreloadDocsTotalMilliseconds.Set(preloadStats.Docs.TotalMillis)
 
-	metricsReplPreloadIndexesNumTotal.Set(preloadStats.Indexes.Num)
-	metricsReplPreloadIndexesTotalMilliseconds.Set(preloadStats.Indexes.TotalMillis)
+	// metricsReplPreloadIndexesNumTotal.Set(preloadStats.Indexes.Num)
+	// metricsReplPreloadIndexesTotalMilliseconds.Set(preloadStats.Indexes.TotalMillis)
 }
 
 // StorageStats are the stats associated with the storage.
